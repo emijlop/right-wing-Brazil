@@ -1,0 +1,233 @@
+---
+title: "Rise of right-wing politicians and social media in Brazil"
+author: "Laia Domenech Burin (L.Domenech-Burin@students.hertie-school.org), Chloe Fung (C.Fung@students.hertie-school.org), Hanna Fantahun Getachew (H.Getachew@students.hertie-school.org), Elena Mijares Lopez (E.Mijares-Lopez@students.hertie-school.org)"
+date: "`r Sys.Date()`"
+output: 
+  rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(legislatoR)
+library(sf)
+library(leaflet)
+library(lubridate)
+library(ggtext)
+library(patchwork)
+library(ggthemes)
+library(plotly)
+
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+options(scipen = 999)
+
+```
+
+## Introduction
+
+In recent years, political campaigning and engagement have evolved to include higher reliance on social media platforms. In the case of Brazil, the rise of Jair Bolsonaro's campaign was highly linked to the spread of outrage and hate speech on social media platforms to engage users. This exploratory report will examine the links between social media presence, popularity (measured through Wikipedia traffic), and political orientation (left, center, right), using politician's data from the legislatoR package. We will explore how this relates to the contemporary rise of right wing politicians in the case of Brazil.
+
+
+To this end, this report breaks down the legislators by political orientation (left, center, right) and inspects their overall social media use. It further explores the correlation between social media accounts and popularity (Wikipedia traffic). Special attention is given to the 20 most popular Brazilian legislators, as they are the most dominant in the political sphere. We will be looking at their share of Wikipedia traffic and how it has progressed over time from 2019 to 2023.
+
+```{r}
+br_core <- get_core(legislature = "bra")
+br_soc <- get_social(legislature = "bra")
+br_political <- get_political(legislature = "bra")
+parties_political_orientation <- read_csv('./metadata/brazilian_political_parties_classification.csv')
+geodata_brazil <- read_sf("./metadata/brazil_geo.json")
+```
+
+## General characterization of recent brazilian legislators. 
+
+- What were the characteristics of the legislators present in most recent sessions? We take as reference session 56. We will filter the core data to only include the most recent sessions.
+
+```{r}
+#Get the latest sessions
+br_political <- br_political %>% filter(session == 56)
+
+brazil_core_filter <- br_core %>% 
+  right_join(br_political) 
+
+brazil_core_filter <- brazil_core_filter %>%
+  left_join(parties_political_orientation) %>%
+  filter(classification %in% c("Left", "Right", "Center"))
+
+```
+
+
+
+
+
+```{r}
+summary_of_parties_by_region <- brazil_core_filter %>%
+  group_by(constituency, classification) %>% 
+  summarise(n = n()) %>%
+  mutate(perc_of_right_wing = n/sum(n)) 
+
+summary_of_parties_by_region <- geodata_brazil %>%  left_join(summary_of_parties_by_region, by = c("name" = "constituency")) 
+summary_of_parties_by_region <- st_transform(summary_of_parties_by_region, crs = 4326)
+
+summary_of_parties_by_region <- summary_of_parties_by_region %>% filter(classification == 'Right')
+```
+
+
+- Who were the most popular candidates? We investigate this question using Wikipedia traffic to candidate Wikipedia profile pages as a proxy for popularity.
+
+```{r}
+br_traffic <- brazil_core_filter %>%
+  left_join(get_traffic(legislature = 'bra')) %>%
+  mutate(year_of_traffic = year(date))
+
+br_traffic <- br_traffic %>% 
+  filter(year_of_traffic > 2018 & year_of_traffic < 2024)
+
+top_candidates <- br_traffic %>% group_by(name, wikidataid, pageid, constituency, classification) %>%
+  summarise(total_traffic = sum(traffic)) %>% 
+  arrange(desc(total_traffic)) %>% 
+  ungroup()
+```
+
+Bolsonaro’s campaign strategically used polarizing content to mobilize supporters, especially on platforms like Facebook and Twitter. On these platforms, hate speech was being used on social media to enable the formation of a stronger network Sponholz (2020).
+
+Rocha (2021), made the similar observation that alternative and right wing ideas flourished on social platforms like Facebook and Orkut. These spaces allowed ideas like anti-globalism, libertarianism and so on to gain more traction beyond traditional media.
+
+The legislatoR package allows us to probe into whether or not these platforms are being used by Right Wing politicans to gain more popularity and influence. We will use this package to check the count of representatives for Right Wing, Center, and Left wing parties in Brazil as well as observe their presence on different prominent social media platforms. 
+
+## Political parties analyisis
+ 
+Now we look at candidates by their political party affiliation.
+
+```{r}
+p1 <- ggplot(brazil_core_filter)+
+  geom_bar(aes(x = classification,
+               fill = classification))+
+  labs(title = "Figure 1.1: Brazilian legislators by political orientation", x = "Political orientation", 
+       y = "Number of legislators")+
+  scale_fill_manual(values = c("Right" = "darkred", "Left" = "darkblue", "Center" = "darkgreen"))+
+  theme_minimal()
+
+candidates_social_media <- top_candidates %>%
+  left_join(br_soc) 
+
+summary_of_social_by_orientation <- candidates_social_media %>%
+  group_by(classification)%>%
+  mutate(n = n()) %>%
+  group_by(classification, n) %>%
+  summarise_at(vars(twitter:instagram), ~ sum(!(is.na(.)))) %>%
+  mutate_at(vars(twitter:instagram), ~( . / n)*100) 
+
+summary_of_social_by_orientation <- summary_of_social_by_orientation %>%
+  select(-n) %>%
+  pivot_longer(cols = -classification, names_to = "social_media", values_to = "percentage")
+
+p2 <- ggplot(summary_of_social_by_orientation) +
+  geom_col(aes(x = social_media, y = percentage, fill = classification), position = "dodge") +
+  scale_fill_manual(values = c("Left" = "darkred", "Right" = "darkblue", "Center" = "darkgreen")) +
+  labs(title = "Figure 1.2: Social media presence by political orientation", x = "Social media", y = "Percentage of legislators") +
+  theme_minimal()
+
+p1/p2+ plot_layout(heights = c(5, 3))
+```
+
+The above figures provide insights into the political orientation and social media presence of Brazilian legislators. Figure 1.1 (top plot), shows the number of legislators by political orientation (classified as Center, Left, and, Right). Figure 1.2 (bottom plot), displays the percentage of legislators from each political orientation (Center, Left, and Right) who are using the specified social media platforms (facebook, instagram, linkedin, twitter, and youtube).
+
+**Figure 1.1 observations:** The largest share of legislators in Brazil are in the Right Wing category. The second largest group of legislators are in the Center category, with a slightly fewer count. The smallest group of legislators are in the Left Wing category, with numbers noticeably lower than both Center, and Right Wing groups.
+
+**Figure 1.2 observations:** From this figure we can observe that although there are variations across platforms, Right Wing politicians use social media channels at a higher rate, indicating a strategic social media presence for higher public engagement. Instagram and Twitter, are exceptions to this pattern with Left Wing politicians having a slightly higher presence than both Center and Right Wing.
+
+Below is the relationship between presence in social media and traffic on Wikipedia.
+
+```{r}
+set.seed(123)  # Ensure reproducibility
+
+social_media_summary_and_traffic <- candidates_social_media %>% 
+  group_by(name, classification, total_traffic)%>% 
+  summarise_at(vars(twitter:instagram), ~ sum(!(is.na(.)))) %>% 
+  ungroup()%>%
+  mutate(social_media_count = rowSums(.[4:8])) 
+
+
+p5 <- ggplot(social_media_summary_and_traffic, aes(x = social_media_count, y = total_traffic/1000, color = classification, name_of_legislator = name)) +
+  geom_jitter(size = 2, width = 0.2, height = 0) +
+  scale_color_manual(values = c("Left" = "darkred", "Right" = "darkblue", "Center" = "darkgreen")) +
+  labs(title = "Figure 2: Social Media Presence vs Total Traffic by Political Orientation",
+       x = "Number of Social Media Accounts",
+       y = "Total Traffic") +
+  theme_minimal()
+
+ggplotly(p5, tooltip = "name_of_legislator")
+```
+
+Figure 2: this interactive plot displays the relationship between the number of social media accounts legislators have (ranging from 0 to 4) and their total Wikipedia traffic. Each point represents a legislator (hover to read name), and its color indicates the legislator's political orientation (Green: Center, Red: Left Wing, Blue: Right Wing). 
+
+The figure shows a pattern where a higher number of social media account is correlated with a higher Wikipedia traffic, suggesting a higher visibility and public interest. Those with 0 or 1 social media accounts are concentrated in the bottom left corner where the total traffic is low. 
+
+In terms of political orientation, Right Wing legislators, particularly those with 3 or 4 social media accounts are dominant in upper, higher traffic areas. Comparatively, Left Wing legislators (red points) show lower traffic **even when they have 3 or 4 social media accounts**.
+
+This is consistent with the findings of Silvia et al.(2021), and Rocha (2021), that hate speech and polarizing ideologies were a hook for increased engagement and popularity, strategically used by Right Wing politicians. 
+
+## Time analysis of Wikipedia traffic
+```{r}
+time_analysis_data <- br_traffic %>%
+  select(name, wikidataid, pageid, classification, constituency, date, traffic) %>%
+  mutate(year = year(date)) %>% 
+  filter(year > 2018 & year < 2024)
+
+top_candidates <- time_analysis_data %>%
+  group_by(name, wikidataid, pageid, classification, constituency) %>%
+  summarise(total_traffic = sum(traffic, na.rm = TRUE)) %>%
+  arrange(desc(total_traffic)) %>%
+  ungroup()
+
+top_20_cands <- top_candidates %>%
+  slice_max(total_traffic, n = 20)
+
+top_20_wikitr <- time_analysis_data %>%
+  filter(wikidataid %in% top_20_cands$wikidataid)
+
+yearly_traffic <- top_20_wikitr %>%
+  group_by(year, name) %>%
+  summarise(yearly_traffic = sum(traffic, na.rm = TRUE)) %>%
+  ungroup()
+
+yearly_traffic_sum <- top_20_wikitr %>%
+  group_by(year, classification) %>%
+  summarise(total_traffic = sum(traffic, na.rm = TRUE)) %>%
+  mutate(percentage = total_traffic / sum(total_traffic) * 100) %>%
+  ungroup()
+
+# Line Plot
+lineplot <- ggplot(yearly_traffic_sum) +
+  geom_line(aes(x = year, y = percentage, color = classification, group = classification), size = 1.2) +
+  geom_point(aes(x = year, y = percentage, color = classification), size = 3) +  
+  scale_color_manual(values = c("Left" = "darkred", "Right" = "darkblue", "Center" = "darkgreen")) +
+  scale_y_continuous(limits = c(0, 100), labels = scales::percent_format(scale = 1)) +
+  labs(title = "Figure 3: Yearly Wikipedia Traffic by Political Orientation (Top 20 Politicians)",
+       x = "Year",
+       y = "Percentage of Total Traffic",
+       color = "Political Orientation") +
+  theme_minimal()
+lineplot
+```
+Figure 3: This graph shows the evolution of the share of Wikipedia traffic from 2019 to 2023 for the top 20 politicians in Brazil. The colors correspond to political orientation with the green line showing Center politicians in the top 20 group; the red and blue lines show the same for Left and Ring Wing politicians, respectively.
+
+
+The figure shows significant trends over the selected period; Right Wing politicians (blue line) visibly increase in 2020, reaching a peak in 2021 and remaining high for the rest of the duration; Center politicians (green line) show the opposite pattern with their steady decline starting in 2020; Left Wing politicians (red line), show an overall lower share with a modest increase as of 2021. 
+
+This pattern, observed for the top 20 politicians, might not hold true for the general legislature data, but supports the narrative of increasing Right Wing popularity. The COVID-19 pandemic around the 2020 mark, reduced in person interactions and accelerated the use of online platforms, which could have led to an increased reliance on social media for Right Wing politicians, as well as explain their increased popularity. That could also contribute to the loss of traction for less polarizing and more central views reducing the popularity of Center politicians; these trends are in line with the findigs of Silvia et al.(2021), and Rocha (2021).
+
+In conclusion, this analysis sheds light on the role of social media in shaping the political landscape in Brazil. The widespread sharing of polarizing content through these platforms has played a role in increasing the popularity of Right Wing politicians. The correlation between social media accounts and Wikipedia traffic also speaks to the strategic advantage of using digital platforms for increased political engagement.  
+
+**References**
+
+Sponholz, L. (2020). The Role of Hate Speech in the Far Right Rise. Confluências, 22(3), 220-243.
+Language: English.
+
+Rocha, C. (2021). The New Brazilian Right and the Public Sphere. Mecila Working Paper Series, No. 32.
+Language: English.
+
+Silva, L. R. L., Francisco, R. E. B., & Sampaio, R. C. (2021). Discurso de ódio nas redes sociais digitais: tipos e formas de intolerância na página oficial de Jair Bolsonaro no Facebook. Galáxia (São Paulo), 46, 1-26.
+Language: Portuguese.
+
+**Disclaimer:** Portuguese sources were translated using chat GPT.
+
