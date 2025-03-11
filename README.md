@@ -1,5 +1,6 @@
 # Right Wing Brazil
 ## Rise of right-wing politicians and social media in Brazil
+### 2024-12-18
 
 ### Introduction
 
@@ -17,17 +18,12 @@ Göbel, S., & Munzert, S. (2022). The Comparative Legislators Database. British 
 
 ### Statement of Contributions
 
-Task 1.1: Chloe (support: Laia, especially on troubleshooting sf_use_s2(FALSE))
+Laia Domenech Burin (L.Domenech-Burin@students.hertie-school.org)
+Chloe Fung (C.Fung@students.hertie-school.org)
+Hanna Fantahun Getachew (H.Getachew@students.hertie-school.org)
+Elena Mijares Lopez (E.Mijares-Lopez@students.hertie-school.org)
 
-Task 1.2: Hanna
-
-Task 1.3: Elena
-
-Task 1.4: Laia
-
-Task 2:
-
-Defining the research focus - Laia, Elena, and Chloe
-Data preparation and plots - Laia
-Analysis and writing - Hanna
-Proofreading and finalizing - Elena and Chloe
+- Defining the research focus - Laia, Elena, and Chloe
+- Data preparation and plots - Laia
+- Analysis and writing - Hanna
+- Proofreading and finalizing - Elena and Chloe
