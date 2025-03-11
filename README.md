@@ -16,14 +16,9 @@ The database contains information for over 67,000 contemporary and historical le
 
 Göbel, S., & Munzert, S. (2022). The Comparative Legislators Database. British Journal of Political Science, 52(3), 1398-1408.
 
-### Statement of Contributions
+### Contributors
 
-Laia Domenech Burin (L.Domenech-Burin@students.hertie-school.org)
 Chloe Fung (C.Fung@students.hertie-school.org)
-Hanna Fantahun Getachew (H.Getachew@students.hertie-school.org)
 Elena Mijares Lopez (E.Mijares-Lopez@students.hertie-school.org)
-
-- Defining the research focus - Laia, Elena, and Chloe
-- Data preparation and plots - Laia
-- Analysis and writing - Hanna
-- Proofreading and finalizing - Elena and Chloe
+Hanna Fantahun Getachew (H.Getachew@students.hertie-school.org)
+Laia Domenech Burin (L.Domenech-Burin@students.hertie-school.org)
